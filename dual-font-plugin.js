@@ -5,6 +5,8 @@
  * - Applies SimSun font to Chinese characters
  * - Applies Times New Roman to non-Chinese characters 
  * - Handles mixed Chinese/non-Chinese text within the same elements
+ *
+ *  powered by Claude 3.7 Sonnet Extended, debugged by rqdmap
  */
 
 // Plugin registration function
