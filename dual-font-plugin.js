@@ -23,18 +23,18 @@ function registerDualFontPlugin(ui) {
     // 创建一个临时 DOM 元素来解析 HTML
     var tempDiv = document.createElement('div');
     tempDiv.innerHTML = html;
-    
+
     // 递归处理所有文本节点
     function processNode(node) {
       if (node.nodeType === 3) { // 文本节点
         // 处理文本节点
         var text = node.textContent;
         if (!text.trim()) return; // 跳过空文本
-        
+
         // 检查是否包含中文
         var hasChinese = /[\u4e00-\u9fa5]/.test(text);
         var hasNonChinese = /[^\u4e00-\u9fa5\u3000-\u303f\uff00-\uff60\uff61-\uffef]/.test(text);
-        
+
         // 如果混合了中英文，拆分处理
         if (hasChinese && hasNonChinese) {
           var parent = node.parentNode;
@@ -42,12 +42,12 @@ function registerDualFontPlugin(ui) {
           var segments = [];
           var currentType = null;
           var currentText = '';
-          
+
           // 字符分类
           for (var i = 0; i < text.length; i++) {
             var char = text[i];
             var isChinese = /[\u4e00-\u9fa5\u3000-\u303f\uff00-\uff60\uff61-\uffef]/.test(char);
-            
+
             if (currentType === null) {
               currentType = isChinese;
               currentText = char;
@@ -59,12 +59,12 @@ function registerDualFontPlugin(ui) {
               currentText = char;
             }
           }
-          
+
           // 添加最后一段
           if (currentText) {
             segments.push({text: currentText, isChinese: currentType});
           }
-          
+
           // 用分段替换原节点
           segments.forEach(function(segment) {
             var span = document.createElement('span');
@@ -72,10 +72,10 @@ function registerDualFontPlugin(ui) {
             span.textContent = segment.text;
             parent.insertBefore(span, node);
           });
-          
+
           // 移除原文本节点
           parent.removeChild(node);
-          
+
         } else if (hasChinese) {
           // 纯中文
           var span = document.createElement('span');
@@ -92,15 +92,15 @@ function registerDualFontPlugin(ui) {
       } else if (node.nodeType === 1) { // 元素节点
         // 保留现有的字体设置
         var existingFont = node.style && node.style.fontFamily;
-        
+
         // 递归处理子节点
         Array.from(node.childNodes).forEach(processNode);
       }
     }
-    
+
     // 处理所有内容
     processNode(tempDiv);
-    
+
     // 返回处理后的 HTML
     return tempDiv.innerHTML;
   }
@@ -108,11 +108,11 @@ function registerDualFontPlugin(ui) {
   // 应用双字体格式化
   function applyDualFontFormatting(cell, graph) {
     if (!cell || !graph) return;
-    
+
     var model = graph.getModel();
     var cellValue = model.getValue(cell);
     var label = '';
-    
+
     // 获取标签文本
     if (typeof cellValue === 'string') {
       label = cellValue;
@@ -121,19 +121,19 @@ function registerDualFontPlugin(ui) {
     } else {
       return;
     }
-    
+
     if (!label) return;
-    
+
     // 检查标签是否已经包含 HTML
     if (containsHtml(label)) {
       // 处理含有 HTML 的内容
       var processedHtml = processHtmlContent(label);
-      
+
       // 创建 XML 对象以设置值
       var doc = mxUtils.createXmlDocument();
       var obj = doc.createElement('object');
       obj.setAttribute('label', processedHtml);
-      
+
       // 更新单元格值
       model.beginUpdate();
       try {
@@ -146,17 +146,17 @@ function registerDualFontPlugin(ui) {
       // 处理纯文本内容
       var hasChinese = /[\u4e00-\u9fa5]/.test(label);
       var hasNonChinese = /[^\u4e00-\u9fa5\u3000-\u303f\uff00-\uff60\uff61-\uffef]/.test(label);
-      
+
       if (hasChinese && hasNonChinese) {
         // 混合内容 - 将其转换为 HTML
         var styledText = '';
         var currentType = null;
         var currentSegment = '';
-        
+
         for (var i = 0; i < label.length; i++) {
           var char = label[i];
           var isChinese = /[\u4e00-\u9fa5\u3000-\u303f\uff00-\uff60\uff61-\uffef]/.test(char);
-          
+
           if (currentType === null) {
             currentType = isChinese;
             currentSegment = char;
@@ -170,19 +170,19 @@ function registerDualFontPlugin(ui) {
             currentSegment = char;
           }
         }
-        
+
         // 添加最后一段
         if (currentSegment) {
           var fontFamily = currentType ? 'SimSun' : 'Times New Roman';
           styledText += '<span style="font-family: ' + fontFamily + ';">' + 
                        escapeHtml(currentSegment) + '</span>';
         }
-        
+
         // 创建 XML 对象以设置值
         var doc = mxUtils.createXmlDocument();
         var obj = doc.createElement('object');
         obj.setAttribute('label', styledText);
-        
+
         // 更新单元格值
         model.beginUpdate();
         try {
@@ -200,7 +200,7 @@ function registerDualFontPlugin(ui) {
       }
     }
   }
-  
+
   // HTML 转义函数
   function escapeHtml(text) {
     return text
@@ -211,7 +211,7 @@ function registerDualFontPlugin(ui) {
       .replace(/'/g, '&#039;');
   }
 
-  
+
   // Helper function to format text segments with appropriate font
   function formatSegment(text, isChinese) {
     // Escape HTML special characters properly
@@ -220,14 +220,70 @@ function registerDualFontPlugin(ui) {
                       .replace(/>/g, '&gt;')
                       .replace(/"/g, '&quot;')
                       .replace(/'/g, '&#39;');
-    
+
     // Apply font-family based on text type
     var fontFamily = isChinese ? 'SimSun' : 'Times New Roman';
-    
+
     // Use proper mxGraph HTML format
     return '<font face="' + fontFamily + '">' + escaped + '</font>';
   }
 
+  function getAllCellsRecursively(graph, parent) {
+    var allCells = [];
+
+    if (!graph || !graph.getModel) {
+      console.error('Invalid graph object');
+      return allCells;
+    }
+
+    var model = graph.getModel();
+
+    if (!parent) {
+      parent = graph.getDefaultParent();
+    }
+
+    // 获取当前层级的所有子单元格
+    var children = graph.getChildCells(parent);
+
+    if (!children || !children.length) {
+      return allCells;
+    }
+
+    for (var i = 0; i < children.length; i++) {
+      var cell = children[i];
+      if (!cell) continue;
+
+      allCells.push(cell);
+
+      // 检查是否有子单元格
+      var hasChildren = false;
+      try {
+        if (model.getChildCount && typeof model.getChildCount === 'function') {
+          hasChildren = model.getChildCount(cell) > 0;
+        } else if (cell.children && cell.children.length > 0) {
+          hasChildren = true;
+        }
+      } catch (e) {
+        console.warn('Error checking child count for cell:', e);
+        // 尝试备用方法
+        if (cell.children && cell.children.length > 0) {
+          hasChildren = true;
+        }
+      }
+
+      // 如果有子单元格，递归获取
+      if (hasChildren) {
+        try {
+          var subCells = getAllCellsRecursively(graph, cell);
+          allCells = allCells.concat(subCells);
+        } catch (e) {
+          console.warn('Error getting sub-cells:', e);
+        }
+      }
+    }
+
+    return allCells;
+  }
 
   // Register action for manual triggering
   ui.actions.addAction('dualFontFormat', function() {
@@ -237,15 +293,15 @@ function registerDualFontPlugin(ui) {
       console.error('Editor or graph not available');
       return;
     }
-    
+
     var graph = editor.graph;
-    
+
     // Start a single compound edit for undo/redo functionality
     graph.getModel().beginUpdate();
     try {
-      // Get all cells in the graph
-      var cells = graph.getChildCells(graph.getDefaultParent());
-      
+      // 使用递归方法获取所有单元格（包括组合内的）
+      var cells = getAllCellsRecursively(graph);
+
       // Process each cell
       for (var i = 0; i < cells.length; i++) {
         applyDualFontFormatting(cells[i], graph);
@@ -254,24 +310,39 @@ function registerDualFontPlugin(ui) {
       // End the compound edit
       graph.getModel().endUpdate();
     }
-    
+
     // Show confirmation message
     ui.alert('已应用双字体格式化: 中文使用宋体(SimSun), 非中文使用 Times New Roman');
   }, null, null, 'Ctrl+Shift+D');
-  
+
+  // 同样修改自动格式化部分
+  if (ui.editor && ui.editor.addListener) {
+    ui.editor.addListener('fileLoaded', function() {
+      // Delayed execution to ensure diagram is fully loaded
+      setTimeout(function() {
+        if (ui.actions && ui.actions.get) {
+          var action = ui.actions.get('dualFontFormat');
+          if (action && action.funct) {
+            action.funct();
+          }
+        }
+      }, 500);
+    });
+  }
+
   // Add the action to the Edit menu
   var editMenu = ui.menus.get('edit');
   var oldCallback = editMenu.funct;
-  
+
   editMenu.funct = function(menu, parent) {
     // Call the original function
     if (oldCallback != null) {
       oldCallback.apply(this, arguments);
     }
-    
+
     // Add separator
     menu.addSeparator(parent);
-    
+
     // Add our menu item
     ui.menus.addMenuItem(menu, 'dualFontFormat', parent);
   };
@@ -279,20 +350,20 @@ function registerDualFontPlugin(ui) {
   // Add auto-formatting for new cells
   if (ui.editor && ui.editor.graph) {
     var graph = ui.editor.graph;
-    
+
     if (graph.labelChanged) {
       var oldLabelChanged = graph.labelChanged;
-      
+
       graph.labelChanged = function(cell, value, autoSize) {
         // Call the original function first
         oldLabelChanged.apply(this, arguments);
-        
+
         // Apply dual font formatting
         applyDualFontFormatting(cell, this);
       };
     }
   }
-  
+
   // Auto-run the formatting for all existing elements when diagram is loaded
   if (ui.editor) {
     if (ui.editor.addListener) {
@@ -309,7 +380,7 @@ function registerDualFontPlugin(ui) {
       });
     }
   }
-  
+
   console.log('Dual Font Plugin loaded successfully (SimSun for Chinese, Times New Roman for non-Chinese)');
 }
 
